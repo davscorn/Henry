@@ -19,7 +19,7 @@ struct ListItem: Identifiable, Hashable {
 /// - Volumes (tsp/tbsp/cup) are summed together, as are weights (oz/lb).
 /// - Count units (each, can, clove, …) only sum with the same unit.
 /// - If one name ends up with incompatible units, they're shown joined: "1 cup + 1 can".
-/// - Quantities are scaled by planned servings ÷ recipe servings.
+/// - Quantities are scaled by planned servings ÷ recipe servings; count units round up to whole items.
 /// - Anything in the pantry set is flagged `isPantry` instead of being dropped.
 enum ListBuilder {
     private struct UnitKey: Hashable {
@@ -67,9 +67,11 @@ enum ListBuilder {
 
         let items = order.compactMap { key -> ListItem? in
             guard let acc = buckets[key] else { return nil }
-            let amount = acc.unitOrder.map { unitKey in
-                QuantityFormatter.describe(
-                    base: acc.amounts[unitKey] ?? 0,
+            let amount = acc.unitOrder.map { unitKey -> String in
+                let base = acc.amounts[unitKey] ?? 0
+                // You can't buy ¾ of a can: whole-item units round up on the list.
+                return QuantityFormatter.describe(
+                    base: unitKey.kind == .count ? (base - 0.01).rounded(.up) : base,
                     kind: unitKey.kind,
                     countUnit: unitKey.countUnit ?? .each
                 )

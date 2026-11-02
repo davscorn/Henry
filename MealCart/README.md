@@ -1,5 +1,7 @@
 # MealCart
 
+> **No Mac?** Use the web version in `web/index.html`: same meals, same list engine, store links. Open it in Safari on iPhone → Share → Add to Home Screen.
+
 Plan the week's dinners → get one consolidated, aisle-sorted shopping list → tap to search each item at your store.
 
 SwiftUI, iOS 17+, iPhone. No accounts, no backend, no third-party packages. Everything is stored on-device.
