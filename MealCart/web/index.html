@@ -105,6 +105,7 @@ main .wrap { padding-block: 14px calc(var(--nav-h) + env(safe-area-inset-bottom,
   background: var(--accent); color: var(--accent-ink); display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   text-decoration: none;
 }
+.btn svg { width: 18px; height: 18px; flex: none; }
 .btn.ghost { background: var(--surface-2); color: var(--ink); }
 .btn.small { padding: 6px 12px; font-size: 0.85rem; }
 .btn.danger { background: var(--danger-soft); color: var(--danger); }
@@ -213,7 +214,7 @@ details.pantry .item { border-top: 1px solid var(--line); }
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 14px); z-index: 20;
-  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-weight: 600; font-size: 0.9rem;
+  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-weight: 600; font-size: 0.9rem; z-index: 50;
   max-width: calc(100% - 32px);
 }
 
@@ -254,6 +255,38 @@ details.pantry .item { border-top: 1px solid var(--line); }
 .ing span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .howto { padding: 14px; display: grid; gap: 8px; }
 .howto ol { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+
+/* Shop mode */
+.btn.hero { width: 100%; border-radius: var(--radius); padding: 16px; font-size: 1.05rem; }
+.btn.hero svg { width: 20px; height: 20px; }
+.shop {
+  position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow-y: auto;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.shop .wrap { display: grid; gap: 16px; padding-block: 14px 28px; }
+.shop-top { display: flex; align-items: center; gap: 12px; }
+.shop-top .where { flex: 1; min-width: 0; }
+.shop-top .where b { display: block; font-family: var(--font-display); font-size: 1.2rem; line-height: 1.2; }
+.shop-card { overflow: hidden; }
+.shop-card .body { padding: 18px 16px 16px; display: grid; gap: 6px; }
+.shop-card .big { font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1.1; letter-spacing: -0.02em; margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
+.shop-card .qty { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+.shop-card .for { color: var(--muted); font-size: 0.9rem; }
+.shop-card .term { font-size: 0.82rem; color: var(--muted); }
+.shop-actions { display: grid; gap: 10px; }
+.shop-actions .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.shop-actions .pair .btn { border-radius: var(--radius); padding: 12px; }
+.done-banner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--accent-soft); border-radius: var(--radius); font-size: 0.92rem; flex-wrap: wrap; }
+.done-banner span { flex: 1 1 160px; min-width: 0; }
+.linkbtn { border: 0; background: none; padding: 4px 2px; font-weight: 700; color: var(--accent); }
+.linkbtn.warn { color: var(--danger); }
+.upnext { display: grid; }
+.upnext div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px; font-size: 0.92rem; }
+.upnext div + div { border-top: 1px solid var(--line); }
+.upnext span:last-child { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.finish { text-align: center; padding: 28px 16px; display: grid; gap: 12px; justify-items: center; }
+.finish h2 { font-family: var(--font-display); font-size: 1.6rem; margin: 0; }
+.finish p { margin: 0; color: var(--muted); max-width: 36ch; }
 </style>
 
 <header class="topbar">
@@ -272,6 +305,7 @@ details.pantry .item { border-top: 1px solid var(--line); }
   </nav>
 </div>
 <div id="sheet" hidden></div>
+<div id="shop" class="shop" role="dialog" aria-modal="true" aria-label="Shop my list" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
@@ -457,13 +491,14 @@ const I = {
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>',
   house: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6.5 8 6.5M6 9.5V20h12V9.5"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.5l2.2 11h10.6L20.5 8H6.6"/><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg>'
 };
 
 /* ---------- views ---------- */
 const TITLES = { discover: "Discover", week: "This Week", list: "Shopping List", prefs: "Settings" };
 let current = "discover";
-const ui = { query: "", tag: null, extraDraft: "", noteDraft: "", stapleDraft: "", confirm: null, copyText: null };
+const ui = { shop: null, query: "", tag: null, extraDraft: "", noteDraft: "", stapleDraft: "", confirm: null, copyText: null };
 const $view = document.getElementById("view");
 
 function mealRow(m) {
@@ -563,6 +598,7 @@ function viewList() {
   const total = needed.length + state.extras.length;
   const left = remainingCount(items);
   let html =
+    (left ? '<button class="btn hero" data-act="shopstart">' + I.cart + 'Shop my list · ' + left + (left === 1 ? ' item' : ' items') + '</button>' : '') +
     '<div class="panel storebar"><label for="store-l">Shop at</label>' + storeSelect("store-l") + '</div>' +
     '<div style="display:grid;gap:6px"><div style="display:flex;justify-content:space-between" class="small"><span><b>' + (total - left) + '</b> of ' + total + ' in cart</span><span class="muted">' + left + ' left</span></div>' +
     '<div class="progress" aria-hidden="true"><i style="width:' + (total ? Math.round((total - left) / total * 100) : 0) + '%"></i></div></div>';
@@ -643,6 +679,7 @@ function render() {
     if (el) { el.focus(); if (el.setSelectionRange && el.type !== "search") el.setSelectionRange(el.value.length, el.value.length); }
   }
   if (openMealId) renderSheet();
+  renderShop();
 }
 
 /* ---------- meal sheet ---------- */
@@ -682,6 +719,106 @@ function copy(text, okMsg) {
 }
 let confirmTimer;
 
+/* ---------- shop mode ---------- */
+const STORE_HOME = {
+  instacartAldi: "https://www.instacart.com/store/aldi/storefront",
+  aldi: "https://www.aldi.us/",
+  walmart: "https://www.walmart.com/cart",
+  target: "https://www.target.com/cart",
+  amazonFresh: "https://www.amazon.com/gp/cart/view.html"
+};
+const $shop = document.getElementById("shop");
+// ui.shop: { skipped: Set, pending: key|null, last: {key,name,search}|null }
+function shopQueue(items) {
+  const checked = new Set(state.checked), skipped = ui.shop.skipped;
+  const q = [];
+  for (const [id, title] of AISLES) {
+    for (const i of items) if (!i.pantry && i.aisle === id && !checked.has(i.key) && !skipped.has(i.key))
+      q.push({ key: i.key, name: i.name, amount: i.amount, meals: i.meals, search: i.search, aisle: title, pantryable: true });
+  }
+  for (const e of state.extras) {
+    const k = extraKey(e);
+    if (!checked.has(k) && !skipped.has(k)) q.push({ key: k, name: e, amount: "", meals: [], search: e, aisle: "Extras", pantryable: false });
+  }
+  return q;
+}
+function startShop() {
+  ui.shop = { skipped: new Set(), pending: null, last: null };
+  renderShop();
+  $shop.scrollTop = 0;
+}
+function endShop() { ui.shop = null; $shop.hidden = true; $shop.innerHTML = ""; render(); }
+function checkOff(key) { if (!state.checked.includes(key)) { state.checked = state.checked.concat(key); commit(); } else render(); }
+function uncheck(key) { state.checked = state.checked.filter(k => k !== key); commit(); }
+function renderShop() {
+  if (!ui.shop) { $shop.hidden = true; return; }
+  const items = buildList();
+  const queue = shopQueue(items);
+  const total = items.filter(i => !i.pantry).length + state.extras.length;
+  const done = total - remainingCount(items);
+  const store = STORES[state.store];
+  const cur = queue[0];
+  const last = ui.shop.last;
+  let html = '<div class="wrap">' +
+    '<div class="shop-top"><div class="where"><span class="eyebrow">Shopping at</span><b>' + esc(store.name) + '</b></div>' +
+    '<button class="btn ghost small" data-act="shopend">Done</button></div>' +
+    '<div style="display:grid;gap:6px"><div style="display:flex;justify-content:space-between" class="small"><span><b>' + done + '</b> of ' + total + ' in cart</span><span class="muted">' + queue.length + ' to go</span></div>' +
+    '<div class="progress" aria-hidden="true"><i style="width:' + (total ? Math.round(done / total * 100) : 0) + '%"></i></div></div>';
+  if (last) {
+    html += '<div class="done-banner" role="status"><span>' + I.check.replace('<svg ', '<svg width="16" height="16" style="vertical-align:-3px;color:var(--accent)" ') + ' <b>' + esc(last.name) + '</b> checked off.</span>' +
+      '<button class="linkbtn" data-act="shopundo">Undo</button><button class="linkbtn warn" data-act="shopnotfound">Couldn’t find it</button></div>';
+  }
+  if (cur) {
+    const pending = ui.shop.pending === cur.key;
+    html +=
+      '<article class="panel shop-card"><div class="sign" style="border-radius:0"><span class="name">' + esc(cur.aisle) + '</span></div>' +
+      '<div class="body"><p class="big">' + esc(cur.name) + '</p>' +
+      (cur.amount ? '<span class="qty">' + esc(cur.amount) + '</span>' : '') +
+      (cur.meals.length ? '<span class="for">For ' + esc(cur.meals.join(", ")) + '</span>' : '') +
+      '<span class="term">Searches for “' + esc(cur.search) + '”</span></div></article>' +
+      '<div class="shop-actions">' +
+        '<a class="btn hero" data-act="shopgo" data-key="' + esc(cur.key) + '" href="' + esc(store.url(cur.search)) + '" target="_blank" rel="noopener">' + I.search + (pending ? 'Search again' : 'Find it at ' + esc(store.name)) + '</a>' +
+        (pending ? '<button class="btn hero ghost" data-act="shopgot" data-key="' + esc(cur.key) + '">' + I.check + 'Added · next item</button>' : '') +
+        '<div class="pair">' +
+          '<button class="btn ghost" data-act="shopskip" data-key="' + esc(cur.key) + '">Skip for now</button>' +
+          (cur.pantryable ? '<button class="btn ghost" data-act="shophave" data-key="' + esc(cur.key) + '">' + I.house + 'Have it</button>'
+                          : '<button class="btn ghost" data-act="shopgot" data-key="' + esc(cur.key) + '">' + I.check + 'Got it</button>') +
+        '</div>' +
+      '</div>' +
+      '<p class="muted small" style="margin:0">Add it to your cart in the tab that opens, then come back here. It gets checked off and the next item is ready.</p>';
+    const next = queue.slice(1, 5);
+    if (next.length) {
+      html += '<div class="group"><p class="eyebrow">Up next</p><div class="panel upnext">' +
+        next.map(n => '<div><span>' + esc(n.name) + '</span><span>' + esc(n.amount) + '</span></div>').join("") +
+        (queue.length > 5 ? '<div><span class="muted">and ' + (queue.length - 5) + ' more</span><span></span></div>' : '') + '</div></div>';
+    }
+  } else {
+    const skipped = [...ui.shop.skipped].map(k => (items.find(i => i.key === k) || {}).name || (k.startsWith("extra:") ? k.slice(6) : k));
+    html += '<div class="finish"><h2>' + (skipped.length ? 'Almost done' : 'Your cart is full') + '</h2>' +
+      (skipped.length ? '<p>You skipped ' + esc(skipped.join(", ")) + '.</p><button class="btn ghost" data-act="shopretry">Go back to skipped items</button>'
+                      : '<p>Every item is checked off. Open your cart to pick a delivery time and check out.</p>') +
+      '<a class="btn hero" href="' + esc(STORE_HOME[state.store]) + '" target="_blank" rel="noopener">' + I.cart + 'Open ' + esc(store.name) + ' to check out</a>' +
+      '<button class="btn ghost" data-act="shopend">Back to my list</button></div>';
+  }
+  html += '</div>';
+  $shop.hidden = false;
+  $shop.innerHTML = html;
+}
+// Coming back from the store tab = that item went in the cart.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !ui.shop || !ui.shop.pending) return;
+  autoAdvance();
+});
+window.addEventListener("focus", () => { if (ui.shop && ui.shop.pending && ui.shop.leftAt && Date.now() - ui.shop.leftAt > 1500) autoAdvance(); });
+function autoAdvance() {
+  const key = ui.shop.pending;
+  const item = shopQueue(buildList()).find(q => q.key === key);
+  ui.shop.pending = null;
+  if (!item) return renderShop();
+  ui.shop.last = { key, name: item.name, search: item.search };
+  checkOff(key);
+}
+
 /* ---------- events ---------- */
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-act]");
@@ -714,6 +851,31 @@ document.addEventListener("click", e => {
       commit(); break;
     }
     case "uncheck": state.checked = []; commit(); break;
+    case "shopstart": startShop(); break;
+    case "shopend": endShop(); break;
+    case "shopgo": ui.shop.pending = el.dataset.key; ui.shop.leftAt = Date.now(); ui.shop.last = null; setTimeout(renderShop, 50); break;
+    case "shopgot": {
+      const item = shopQueue(buildList()).find(q => q.key === el.dataset.key);
+      ui.shop.pending = null; ui.shop.last = item ? { key: item.key, name: item.name, search: item.search } : null;
+      checkOff(el.dataset.key); break;
+    }
+    case "shopskip": ui.shop.skipped.add(el.dataset.key); ui.shop.pending = null; ui.shop.last = null; renderShop(); break;
+    case "shophave": {
+      ui.shop.pending = null; ui.shop.last = null;
+      state.pantry = [...new Set([...state.pantry, el.dataset.key])]; commit(); toast("Moved to your pantry"); break;
+    }
+    case "shopundo": { const l = ui.shop.last; ui.shop.last = null; if (l) uncheck(l.key); break; }
+    case "shopnotfound": {
+      const l = ui.shop.last; ui.shop.last = null;
+      if (l) {
+        ui.shop.skipped.add(l.key);
+        state.notes.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date: Date.now(),
+          text: "Couldn’t find “" + l.name + "” at " + STORES[state.store].name + " (searched “" + l.search + "”)" });
+        uncheck(l.key); toast("Saved to your feedback notes");
+      }
+      break;
+    }
+    case "shopretry": ui.shop.skipped = new Set(); ui.shop.last = null; renderShop(); break;
     case "copylist": copy(listText(buildList()), "List copied"); break;
     case "copynotes": copy(notesText(), "Notes copied"); break;
     case "rmnote": state.notes = state.notes.filter(n => n.id !== el.dataset.id); commit(); break;
@@ -761,12 +923,12 @@ document.addEventListener("submit", e => {
     ui.noteDraft = ""; commit(); toast("Note saved");
   }
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && openMealId) closeSheet(); });
+document.addEventListener("keydown", e => { if (e.key !== "Escape") return; if (openMealId) closeSheet(); else if (ui.shop) endShop(); });
 
 function route() {
   const h = (location.hash || "").slice(1);
   current = TITLES[h] ? h : "discover";
-  ui.confirm = null; ui.copyText = null;
+  ui.confirm = null; ui.copyText = null; ui.shop = null;
   closeSheet();
   render();
   window.scrollTo(0, 0);
